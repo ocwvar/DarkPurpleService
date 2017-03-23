@@ -185,11 +185,11 @@ namespace DarkPurpleService.Controllers
                     //设置歌曲所属者
                     responseObject.ownerName = username;
                     //设置歌曲访问地址
-                    responseObject.url = HttpContext.Current.Request.Url.Host+Data.SERVICE_PORT+"/UploadedFiles/"+username+"/Music/"+file.Name;
+                    responseObject.musicURL = HttpContext.Current.Request.Url.Host+Data.SERVICE_PORT+"/UploadedFiles/"+username+"/Music/"+file.Name;
                     if(new FileInfo(path).Exists)
                     {
                         //如果歌曲有上传的封面 , 则设置封面访问地址
-                        responseObject.cover = HttpContext.Current.Request.Url.Host + Data.SERVICE_PORT + "/UploadedFiles/" + username + "/Cover/" + fileName+".jpg";
+                        responseObject.coverURL = HttpContext.Current.Request.Url.Host + Data.SERVICE_PORT + "/UploadedFiles/" + username + "/Cover/" + fileName+".jpg";
                     }
                     //将歌曲信息添加入返回列表信息中
                     fileList.Add(responseObject);

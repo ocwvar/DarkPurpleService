@@ -11,8 +11,8 @@ namespace DarkPurpleService.Models
 
         public string ownerName { set; get; }
 
-        public string url { set; get; }
+        public string musicURL { set; get; }
 
-        public string cover { set; get; }
+        public string coverURL { set; get; }
     }
 }
