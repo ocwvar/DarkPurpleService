@@ -32,11 +32,11 @@ namespace DarkPurpleService.Controllers
         /// 
         /// token:可用的Token
         /// fileType:上传文件的类型
-        /// musicTitle:上传歌曲的名称
+        /// musicTitle:上传歌曲的名称 (需要使用BASE64传递 , 避免HEADER编码问题无法传输)
         /// 
         /// Multipart承载所有上传的文件   文件大小要求小于40MB
         /// </summary>
-        /// <returns>200成功  403错误:对应的错误消息</returns>
+        /// <returns>具体查询ResultMsg内的消息</returns>
         [Route("Upload")]
         public async Task<IHttpActionResult> upload()
         {
@@ -77,7 +77,8 @@ namespace DarkPurpleService.Controllers
 
             //以用户名作为子目录分类
             var username = MySQLInterface.get().searchDB("token", "token", token)[0][0];
-
+            //设置上传目录
+            var uploadFolderPath = HttpContext.Current.Request.PhysicalApplicationPath + "\\UploadedFiles\\" + username + "\\";
             foreach (var item in provider.Contents)
             {
                 if(item.Headers.ContentDisposition.Name != null)
@@ -90,10 +91,10 @@ namespace DarkPurpleService.Controllers
                         using (var reader = new BinaryReader(stream))
                         {
                             var fileBytes = reader.ReadBytes((int)stream.Length);
-                            //上传储存目录
-                            var path = "D:\\UploadedFiles\\"+username+"\\";
                             //项目的类别名称
                             var argTpyeName = item.Headers.ContentDisposition.Name.Replace("\"", "");
+                            //临时目录路径对象
+                            var path = uploadFolderPath;
                             //根据文件类型不同设置不同的子目录
                             if (argTpyeName == "cover")
                             {
@@ -135,6 +136,15 @@ namespace DarkPurpleService.Controllers
             return Content(HttpStatusCode.OK, new ResultMsg<Object>(true, "上传文件成功", null));
         }
 
+        /// <summary>
+        /// 获取上传文件列表
+        /// 
+        /// GET方式
+        /// 参数通过HEAD传递
+        /// 
+        /// token:可用的Token
+        /// </summary>
+        /// <returns>具体查询ResultMsg内的消息</returns>
         [Route("MyFiles")]
         public IHttpActionResult getUploadedFiles()
         {
@@ -151,11 +161,45 @@ namespace DarkPurpleService.Controllers
             }
             catch (Exception)
             {
-                return Content(HttpStatusCode.OK, new ResultMsg<Object>(false, "参数缺失", null));
+                return Content(HttpStatusCode.OK, new ResultMsg<Object>(false, "获取参数失败", null));
                 throw;
             }
-            string folderPath = HttpContext.Current.Request.PhysicalApplicationPath;
-            return Ok(folderPath);
+            //储存目录文件夹
+            string BASE_UPLOAD_PATH = HttpContext.Current.Request.PhysicalApplicationPath+ "\\UploadedFiles\\"+username+"\\";
+            string musicFolder = BASE_UPLOAD_PATH + "Music\\";
+            string coverFolder = BASE_UPLOAD_PATH + "Cover\\";
+            if (Directory.Exists(musicFolder) && Directory.GetFiles(musicFolder).Length > 0)
+            {
+                //当音频目录存在并且内部有文件存在
+                var filesPath = Directory.GetFiles(musicFolder);
+                var fileList = new List<MusicFile>();
+                foreach (var path in filesPath)
+                {
+                    //歌曲信息储存对象
+                    var responseObject = new MusicFile();
+                    var file = new FileInfo(path);
+                    //歌曲名称(文件名除去后缀)
+                    var fileName = file.Name.Remove(file.Name.LastIndexOf("."));
+                    //设置歌曲名称
+                    responseObject.name = fileName;
+                    //设置歌曲所属者
+                    responseObject.ownerName = username;
+                    //设置歌曲访问地址
+                    responseObject.url = HttpContext.Current.Request.Url.Host+Data.SERVICE_PORT+"/UploadedFiles/"+username+"/Music/"+file.Name;
+                    if(new FileInfo(path).Exists)
+                    {
+                        //如果歌曲有上传的封面 , 则设置封面访问地址
+                        responseObject.cover = HttpContext.Current.Request.Url.Host + Data.SERVICE_PORT + "/UploadedFiles/" + username + "/Cover/" + fileName+".jpg";
+                    }
+                    //将歌曲信息添加入返回列表信息中
+                    fileList.Add(responseObject);
+                }
+                return Content(HttpStatusCode.OK, new ResultMsg<List<MusicFile>>(true, "获取上传文件列表成功", fileList));
+            }
+            else
+            {
+                return Content(HttpStatusCode.OK, new ResultMsg<Object>(false, "您没有上传歌曲", null));
+            }
         }    
 
     }

@@ -9,10 +9,10 @@ namespace DarkPurpleService.Models
     {
         public string name { set; get; }
 
-        public string message { set; get; }
-
         public string ownerName { set; get; }
 
         public string url { set; get; }
+
+        public string cover { set; get; }
     }
 }
