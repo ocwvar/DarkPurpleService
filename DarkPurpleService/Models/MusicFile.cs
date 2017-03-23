@@ -9,6 +9,8 @@ namespace DarkPurpleService.Models
     {
         public string name { set; get; }
 
+        public string fileName { set; get; }
+
         public string ownerName { set; get; }
 
         public string musicURL { set; get; }

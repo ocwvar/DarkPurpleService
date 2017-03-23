@@ -54,9 +54,8 @@ namespace DarkPurpleService.Controllers
                     throw new Exception();
                 }
             }
-            catch (Exception e)
+            catch (Exception)
             {
-                System.Diagnostics.Debug.WriteLine(e);
                 return Content(HttpStatusCode.OK, new ResultMsg<Object>(false,"参数缺失",null));
                 throw;
             }
@@ -180,6 +179,8 @@ namespace DarkPurpleService.Controllers
                     var file = new FileInfo(path);
                     //歌曲名称(文件名除去后缀)
                     var fileName = file.Name.Remove(file.Name.LastIndexOf("."));
+                    //设置文件名
+                    responseObject.fileName = file.Name;
                     //设置歌曲名称
                     responseObject.name = fileName;
                     //设置歌曲所属者
@@ -200,7 +201,62 @@ namespace DarkPurpleService.Controllers
             {
                 return Content(HttpStatusCode.OK, new ResultMsg<Object>(false, "您没有上传歌曲", null));
             }
-        }    
+        }
 
+        /// <summary>
+        /// 删除储存在云端的文件
+        /// 
+        /// GET方式
+        /// 参数通过HEAD传递
+        /// 
+        /// token:可用的Token
+        /// fileName:要删除的文件名 (需要使用BASE64传递 , 避免HEADER编码问题无法传输)
+        /// </summary>
+        /// <returns>具体查询ResultMsg内的消息</returns>
+        [Route("RemoveFile")]
+        public IHttpActionResult removeUploadedFiles()
+        {
+            string token = "";
+            string fileName = "";
+            string username = "";
+            try
+            {
+                token = Request.Headers.GetValues("token").ToArray()[0].ToString();
+                username = MySQLInterface.get().searchDB("token", "token", token)[0][0];
+                fileName = TextUnits.decodeBase64(Request.Headers.GetValues("fileName").ToArray()[0].ToString());
+                if (TextUnits.isTextEmpty(token) || TextUnits.isTextEmpty(fileName))
+                {
+                    throw new Exception();
+                }
+            }
+            catch (Exception)
+            {
+                return Content(HttpStatusCode.OK, new ResultMsg<Object>(false, "参数缺失", null));
+                throw;
+            }
+            //储存目录文件夹
+            string BASE_UPLOAD_PATH = HttpContext.Current.Request.PhysicalApplicationPath + "\\UploadedFiles\\" + username + "\\";
+            string musicFolder = BASE_UPLOAD_PATH + "Music\\";
+            string coverFolder = BASE_UPLOAD_PATH + "Cover\\";
+
+            FileInfo musicFile = new FileInfo(musicFolder + fileName);
+            FileInfo coverFile = new FileInfo(coverFolder + fileName.Remove(fileName.LastIndexOf(".")) + ".jpg");
+
+            if (musicFile.Exists)
+            {
+                //文件存在
+                musicFile.Delete();
+                if (coverFile.Exists)
+                {
+                    coverFile.Delete();
+                }
+                return Content(HttpStatusCode.OK, new ResultMsg<Object>(true, "移除云端文件成功", null));
+            }
+            else
+            {
+                //文件不存在
+                return Content(HttpStatusCode.OK, new ResultMsg<Object>(false, "云端不存在此文件", null));
+            }        
+        }
     }
 }
